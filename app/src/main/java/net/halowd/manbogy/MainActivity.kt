@@ -19,6 +19,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun isPermissionGranted() : Boolean{
+        if(android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q){
+            // Android 10 미만
+            return true;
+        }
         val foreground = ContextCompat.checkSelfPermission(this,android.Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED
         val recognition = ContextCompat.checkSelfPermission(this,android.Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
         return  foreground &&  recognition

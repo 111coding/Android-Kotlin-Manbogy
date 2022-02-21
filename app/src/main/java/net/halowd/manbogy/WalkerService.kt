@@ -1,5 +1,6 @@
 package net.halowd.manbogy
 
+import android.R.attr
 import android.app.*
 import android.content.Intent
 import android.os.IBinder
@@ -21,19 +22,30 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import java.util.*
 import android.hardware.SensorManager
+import android.R.attr.y
+
+import android.R.attr.x
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import android.R.attr.y
+
+import android.R.attr.x
 
 
 
-var WALKING_COUNT = 0
 
 
-class WalkerService : Service(), SensorEventListener {
+class WalkerService : Service() {
+
+    companion object {
+        var WALKING_COUNT = 0
+    }
 
     private var preferences: SharedPreferences? = null
     private var preferencesEditor: SharedPreferences.Editor? = null
     private val SHARED_PREFERENCES_NAME = "walk_count_shared_preferences_name"
     private val SHARED_PREFERENCES_KEY = "walk_count_shared_preferences_key"
-
 
     private fun initPreferences(){
         preferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
@@ -51,23 +63,33 @@ class WalkerService : Service(), SensorEventListener {
     // 센서 시작
     private var sensorManager: SensorManager? = null
     private var stepCountSensor: Sensor? = null
+    private var mEventListener :SensorEventListener? = null
+
 
     private fun initSensor(){
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        stepCountSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
-        sensorManager?.registerListener(this,stepCountSensor,SensorManager.SENSOR_DELAY_FASTEST)
-    }
+        stepCountSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
 
-    override fun onSensorChanged(event: SensorEvent?) {
-        if(event!=null){
-            val nextCount : Int = event.values[0].toInt()
-            updateWalkerCount(nextCount)
+        val listner = object : StepListener{
+            override fun onStep(step: Int) {
+                updateWalkerCount(step)
+            }
         }
+        if(stepCountSensor == null){
+            // 가속도센서
+            stepCountSensor = sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            mEventListener = StepAccelerometer()
+            (mEventListener as StepAccelerometer).setStepListener(listner)
+        }else{
+            // 걷기센서
+            mEventListener = StepDetector()
+            (mEventListener as StepDetector).setStepListener(listner)
+        }
+
+        sensorManager?.registerListener(mEventListener,stepCountSensor,SensorManager.SENSOR_DELAY_FASTEST)
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        //
-    }
+
     // 센서 끝
 
     // 노티피케이션 시작
@@ -81,7 +103,7 @@ class WalkerService : Service(), SensorEventListener {
 
 
     private fun updateWalkerCount(nextCnt : Int){
-        WALKING_COUNT += nextCnt;
+        WALKING_COUNT += nextCnt
         saveValue()
         remoteViews?.setTextViewText(R.id.tv_walker_count,"$WALKING_COUNT")
         notificationManager?.notify(NOTIF_ID,notification)
@@ -142,7 +164,7 @@ class WalkerService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        sensorManager?.unregisterListener(this)
+        sensorManager?.unregisterListener(mEventListener)
     }
 
 
