@@ -34,6 +34,7 @@ import android.R.attr.x
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import net.halowd.manbogy.room.WalkDatabase
+import kotlin.math.round
 
 
 class WalkerService : Service() {
@@ -99,7 +100,11 @@ class WalkerService : Service() {
     private fun updateWalkerCount(nextCnt : Int){
         db!!.walkDao().insert(nextCnt)
         WALKING_COUNT += nextCnt
+
         remoteViews?.setTextViewText(R.id.tv_walker_count,"$WALKING_COUNT")
+        remoteViews?.setTextViewText(R.id.tv_walker_km,"${String.format("%.1f", (WALKING_COUNT * 0.0065))}")
+        remoteViews?.setTextViewText(R.id.tv_walker_cal,"${String.format("%.0f", WALKING_COUNT * 0.033)}")
+
         notificationManager?.notify(NOTIF_ID,notification)
     }
 
