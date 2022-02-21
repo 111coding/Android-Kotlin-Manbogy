@@ -31,9 +31,9 @@ import kotlin.math.min
 import android.R.attr.y
 
 import android.R.attr.x
-
-
-
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import net.halowd.manbogy.room.WalkDatabase
 
 
 class WalkerService : Service() {
@@ -42,23 +42,17 @@ class WalkerService : Service() {
         var WALKING_COUNT = 0
     }
 
-    private var preferences: SharedPreferences? = null
-    private var preferencesEditor: SharedPreferences.Editor? = null
-    private val SHARED_PREFERENCES_NAME = "walk_count_shared_preferences_name"
-    private val SHARED_PREFERENCES_KEY = "walk_count_shared_preferences_key"
+    var db: WalkDatabase? = null
 
-    private fun initPreferences(){
-        preferences = getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        if(preferences != null){
-            preferencesEditor = preferences!!.edit()
-            WALKING_COUNT = preferences!!.getInt(SHARED_PREFERENCES_KEY,0)
-        }
+    private fun initDb(){
+        db = Room.databaseBuilder(
+            applicationContext,
+            WalkDatabase::class.java, "database-name"
+        ).allowMainThreadQueries().build()
+
+        WALKING_COUNT = db!!.walkDao().getRecent(1645428688174)
     }
 
-    private fun saveValue(){
-        preferencesEditor?.putInt(SHARED_PREFERENCES_KEY, WALKING_COUNT)
-        preferencesEditor?.commit()
-    }
 
     // 센서 시작
     private var sensorManager: SensorManager? = null
@@ -103,8 +97,8 @@ class WalkerService : Service() {
 
 
     private fun updateWalkerCount(nextCnt : Int){
+        db!!.walkDao().insert(nextCnt)
         WALKING_COUNT += nextCnt
-        saveValue()
         remoteViews?.setTextViewText(R.id.tv_walker_count,"$WALKING_COUNT")
         notificationManager?.notify(NOTIF_ID,notification)
     }
@@ -149,9 +143,11 @@ class WalkerService : Service() {
         return null
     }
 
+
+
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 
-        initPreferences()
+        initDb()
 
         initSensor()
 
@@ -165,6 +161,7 @@ class WalkerService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         sensorManager?.unregisterListener(mEventListener)
+        db?.close();
     }
 
 
