@@ -33,6 +33,7 @@ import android.R.attr.y
 import android.R.attr.x
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import net.halowd.manbogy.room.DbInstance
 import net.halowd.manbogy.room.WalkDatabase
 import kotlin.math.round
 
@@ -46,10 +47,7 @@ class WalkerService : Service() {
     var db: WalkDatabase? = null
 
     private fun initDb(){
-        db = Room.databaseBuilder(
-            applicationContext,
-            WalkDatabase::class.java, "database-name"
-        ).allowMainThreadQueries().build()
+        db = DbInstance.walkDatabase(applicationContext)
 
         WALKING_COUNT = db!!.walkDao().getRecent(1645428688174)
     }
